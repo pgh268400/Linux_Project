@@ -63,8 +63,11 @@ function get_link_list() {
 
 function bfs() {
     #queue 첫 요소 추가
-    get_link_list "$url"                 #링크에서 url 목록 담아서 전역 배열 link_array 에 담는다.
-    queue=(${queue[@]} ${link_array[@]}) #큐에 요소를 삽입한다.
+    get_link_list "$url" #링크에서 url 목록 담아서 전역 배열 link_array 에 담는다.
+
+    if [ ${#link_array[@]} -gt 0 ]; then
+        queue=(${queue[@]} ${link_array[@]}) #큐에 요소를 삽입한다.
+    fi
 
     local i=0
     while [ ${#queue[@]} -gt 0 ]; do
@@ -79,7 +82,10 @@ function bfs() {
 
         unset "queue[$i]" #queue에서 pop (방문처리)
 
-        queue=(${queue[@]} ${link_array[@]}) #큐에 요소를 삽입한다.
+        if [ ${#link_array[@]} -gt 0 ]; then
+            queue=(${queue[@]} ${link_array[@]}) #큐에 요소를 삽입한다.
+        fi
+
         #echo "${#queue[@]}"
 
         ((i += 1)) #== i+=1
@@ -89,5 +95,5 @@ function bfs() {
 
 }
 
-url="https://www.naver.com/" #처음 탐색을 시작하는 루트 url
-bfs                          #bfs를 돌린다.
+url="https://web.pgh268400.duckdns.org/" #처음 탐색을 시작하는 루트 url
+bfs                                      #bfs를 돌린다.
