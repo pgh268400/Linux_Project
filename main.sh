@@ -27,20 +27,11 @@ function get_link_list() {
     link_array=() #배열 초기화
     link_array=($(wget -q -O - $target_url | grep -Po '(?<=href=")[^"]*'))
 
-    #앞이 http로만 시작하는 절대 경로 https 링크를 가져온다.
-    # local i=0
-    # for item in "${link_array[@]}"; do
-    #     if [ "${item:0:4}" != "http" ]; then
-    #         unset "link_array[$i]"
-    #         #echo "remove item : $item i : $i"
-    #     fi
-    #     ((i += 1)) #== i+=1
-    # done
-
     #시작이 http, / 이 아니거나
     #"/" 문자 자체를 걸러낸다.
     local i=0
     for item in "${link_array[@]}"; do
+        # for debug
         # echo -e "${item:0:4}\n"
         # echo -e "${item:0:1}\n"
         # echo -e "${item}\n"
@@ -71,6 +62,7 @@ function get_link_list() {
 }
 
 function bfs() {
+    #queue 첫 요소 추가
     get_link_list "$url"                 #링크에서 url 목록 담아서 전역 배열 link_array 에 담는다.
     queue=(${queue[@]} ${link_array[@]}) #큐에 요소를 삽입한다.
 
@@ -97,37 +89,5 @@ function bfs() {
 
 }
 
-#start_idx=0 #탐색 구역용 변수
 url="https://www.naver.com/" #처음 탐색을 시작하는 루트 url
 bfs                          #bfs를 돌린다.
-
-# #file_name="${start_idx}.html"
-
-# #wget -O $file_name $url
-
-# #정규식에 따라 모든 a tag의 href(링크) 를 가져오고 array 형태로 저장한다.
-# #link_array=( $(cat $file_name | grep -Po '(?<=href=")[^"]*') )
-
-# #인덱스 증가
-# #start_idx+=1
-
-# #폴더를 만든다
-# #mkdir $start_idx
-
-# #array 요소를 item이라는 변수에 대입하면서 하나씩 읽어온다. (C++ For ranged Loop와 유사)
-
-# function temp(){
-#     for item in "${link_array[@]}"
-#     do
-#         #시작이 http로 시작하는 것만을 걸러낸다 (https도 포함)
-#         #("/" 자체는 root 도메인이므로 재귀 호출의 위험성으로 배제한다.)
-#         #참고 /test.html 와 같이
-#         if [ "${item:0:4}" = "http" ] && [ "${item:0:1}" != "/" ] && [ "$item" != "/" ]
-#         then
-#             echo -e "$item\n"
-#             wget -P "$start_idx\\" --content-disposition "$item"
-#             #-P 폴더명 : 원하는 폴더에 다운로드 받기
-#             #--content-disposition = 헤더로부터 제공되는 파일명으로 다운로드
-#         fi
-#     done
-# }
