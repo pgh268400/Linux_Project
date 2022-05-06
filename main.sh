@@ -24,6 +24,7 @@ function get_link_list() {
 
     #echo $(wget -q -O - $target_url)
 
+    link_array=() #배열 초기화
     link_array=($(wget -q -O - $target_url | grep -Po '(?<=href=")[^"]*'))
 
     #앞이 http로만 시작하는 절대 경로 https 링크를 가져온다.
@@ -58,23 +59,24 @@ function get_link_list() {
         #link is not absolute
         if [ "${item:0:1}" == "/" ]; then
             #item=$target_url${item:1} 이건복사본을 바꾸는듯?
-            link_array[j]=$target_url${item:1}
+            link_array[j]=$target_url${item:1} #주소가 /면 들어온 url 과 합쳐서 배열을 바꾼다.
         fi
 
         ((j += 1))
         #echo -e "$item \n"
     done
 
+    echo "new_url_founded : ${#link_array[@]}"
+
 }
 
 function bfs() {
-    # Add the second array at the end of the first array
+    get_link_list "$url"                 #링크에서 url 목록 담아서 전역 배열 link_array 에 담는다.
     queue=(${queue[@]} ${link_array[@]}) #큐에 요소를 삽입한다.
-
-    echo "url count : ${#queue[@]}"
 
     local i=0
     while [ ${#queue[@]} -gt 0 ]; do
+        echo "download queue count : ${#queue[@]}"
 
         #웹 소스 다운로드
         wget -q -P "download" --content-disposition "${queue[$i]}"
@@ -97,9 +99,7 @@ function bfs() {
 
 #start_idx=0 #탐색 구역용 변수
 url="https://www.naver.com/" #처음 탐색을 시작하는 루트 url
-
-get_link_list $url #링크에서 url 목록 담아서 전역 배열 link_array 에 담는다.
-bfs                #bfs를 돌린다.
+bfs                          #bfs를 돌린다.
 
 # #file_name="${start_idx}.html"
 
