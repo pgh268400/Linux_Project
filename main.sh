@@ -27,6 +27,11 @@ function get_link_list() {
     link_array=() #배열 초기화
     link_array=($(wget -q -O - $target_url | grep -Po '(?<=href=")[^"]*'))
 
+    #url이 발견되지 않으면 0을 return 하고 (정상 종료) 함수를 강제 종료한다.
+    if [ ${#link_array[@]} == 0 ]; then
+        return
+    fi
+
     #시작이 http, / 이 아니거나
     #"/" 문자 자체를 걸러낸다.
     local i=0
@@ -43,14 +48,25 @@ function get_link_list() {
         ((i += 1)) #== i+=1
     done
 
+    #root url 처리
+    #ex) https://web.pgh268400.duckdns.org/page11.html -> https://web.pgh268400.duckdns.org/
+    #/ 와 같은 상대경로를 처리하기 위함임.
+    if [ "${target_url:(-1)}" != "/" ]; then
+        root_url=${target_url%/*}/
+        #echo $root_url
+    else
+        root_url=$target_url
+    fi
     #작업한 배열 목록 출력 & / 경로 처리
+
+    #echo "root_url : $root_url"
 
     local j=0
     for item in "${link_array[@]}"; do
         #link is not absolute
         if [ "${item:0:1}" == "/" ]; then
             #item=$target_url${item:1} 이건복사본을 바꾸는듯?
-            link_array[j]=$target_url${item:1} #주소가 /면 들어온 url 과 합쳐서 배열을 바꾼다.
+            link_array[j]=$root_url${item:1} #주소가 /면 들어온 url 과 합쳐서 배열을 바꾼다.
         fi
 
         ((j += 1))
@@ -72,15 +88,24 @@ function bfs() {
     local i=0
     while [ ${#queue[@]} -gt 0 ]; do
         echo "download queue count : ${#queue[@]}"
+        echo "${queue[@]}"
 
         #웹 소스 다운로드
-        wget -q -P "download" --content-disposition "${queue[$i]}"
+        wget -q -P "download" --content-disposition "${queue[0]}"
         #-P 폴더명 : 원하는 폴더에 다운로드 받기
         #--content-disposition = 헤더로부터 제공되는 파일명으로 다운로드
 
-        get_link_list "${queue[$i]}" #링크 다시 들어가기
+        get_link_list "${queue[0]}" #링크 다시 들어가기
+        unset "queue[0]"            #queue에서 pop (방문처리)
 
-        unset "queue[$i]" #queue에서 pop (방문처리)
+        #배열을 unset으로 강제로 지우면 인덱스가 연속적이지 않게 된다.
+        #배열 자체 크기가 변경가능한 데이터 구조가 아닌데 리눅스에서 예외적으로 허용되는 것이므로
+        #다시 array를 생성해서 배열의 gap을 조정해준다.
+        for i in "${!queue[@]}"; do
+            new_array+=("${queue[i]}")
+        done
+        queue=("${new_array[@]}")
+        unset new_array
 
         if [ ${#link_array[@]} -gt 0 ]; then
             queue=(${queue[@]} ${link_array[@]}) #큐에 요소를 삽입한다.
