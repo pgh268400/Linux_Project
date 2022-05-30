@@ -10,7 +10,8 @@ function get_link_list() {
     #리눅스 쉘스크립트 계열에선 함수 호출시 main a b c 와 같은 식으로 호출하므로
     #$1 , $2 와 같이 인자값을 받아낸다.
 
-    #Shell script에서 선언된 변수는 기본적으로 전역 변수로 되며 지역변수는 함수 내에서 선언할 때에만 사용할 수 있으며
+    #Shell script에서 선언된 변수는 기본적으로 전역 변수로 되며
+    #지역변수는 함수 내에서 선언할 때에만 사용할 수 있으며
     #변수명 앞에 local를 붙여주면 된다.
 
     local target_url=$1
@@ -24,13 +25,18 @@ function get_link_list() {
 
     #echo $(wget -q -O - $target_url)
 
+    #queue를 담을때 이 전역 배열에서 데이터를 가져올 것이다.
     link_array=() #배열 초기화
-    link_array=($(wget -q -O - $target_url | grep -Po '(?<=href=")[^"]*'))
+    link_array=($(wget -q -O - "$target_url" | grep -Po '(?<=href=")[^"]*')) #a tag의 href url을 정규식으로 전부 파싱하고 배열에 저장한다.
 
     #url이 발견되지 않으면 0을 return 하고 (정상 종료) 함수를 강제 종료한다.
     if [ ${#link_array[@]} == 0 ]; then
         return
     fi
+
+    #href에는 단순히 https로 시작하는 절대 경로 url만 나오는것이 아니다. 
+    #슬래시(/) 를 이용해 상대 경로까지 포함되어 있다
+    #아래 코드들은 이를 처리하기 위한 코드들이다.
 
     #시작이 http, / 이 아니거나
     #"/" 문자 자체를 걸러낸다.
@@ -77,18 +83,20 @@ function get_link_list() {
 
 }
 
+# 모든 처리는 이 함수로 이루어진다.
 function bfs() {
     #queue 첫 요소 추가
     get_link_list "$url" #링크에서 url 목록 담아서 전역 배열 link_array 에 담는다.
 
     if [ ${#link_array[@]} -gt 0 ]; then
-        queue=(${queue[@]} ${link_array[@]}) #큐에 요소를 삽입한다.
+        queue=(${queue[@]} ${link_array[@]}) #큐에 요소를 삽입한다. (link_array 에서 꺼내온다.)
     fi
 
     local i=0
     while [ ${#queue[@]} -gt 0 ]; do
         echo "download queue count : ${#queue[@]}"
-        echo "${queue[@]}"
+
+        #echo "${queue[@]}"
 
         #웹 소스 다운로드
         wget -q -P "download" --content-disposition "${queue[0]}"
@@ -118,7 +126,10 @@ function bfs() {
         sleep 0.3 #안정을 위해 delay
     done
 
+    echo "queue is clear. download finished"
+
 }
 
+# main function --------------------------------
 url="https://web.pgh268400.duckdns.org/" #처음 탐색을 시작하는 루트 url
 bfs                                      #bfs를 돌린다.
